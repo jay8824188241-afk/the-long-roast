@@ -4,6 +4,12 @@
 Writes a single roast line (1-200 characters) to /output/entry.txt.
 Python standard library only; fully deterministic: the same line on
 every run, no clock, no randomness, no network, no input files.
+
+Revision note (2026-11-25): the roast line itself is unchanged from the
+original submission. This revision only restructures the program: the
+length / single-line gate checks now live in an explicit validate_line()
+function, so the entry contract is checked in one named place instead of
+inline in main().
 """
 
 import os
@@ -15,12 +21,22 @@ LINE = (
 )
 
 
+def validate_line(line: str) -> None:
+    """Assert the entry contract: 1-200 chars, non-blank, single line."""
+    assert 1 <= len(line) <= 200, (
+        f"entry is {len(line)} characters; gate needs 1-200"
+    )
+    assert line.strip(), "entry must not be blank"
+    assert "\n" not in line and "\r" not in line, (
+        "entry must be a single line"
+    )
+
+
 def main() -> int:
-    if not 1 <= len(LINE) <= 200 or not LINE.strip():
-        print(f"entry is {len(LINE)} characters; gate needs 1-200", file=sys.stderr)
-        return 1
-    if "\n" in LINE or "\r" in LINE:
-        print("entry must be a single line", file=sys.stderr)
+    try:
+        validate_line(LINE)
+    except AssertionError as exc:
+        print(str(exc), file=sys.stderr)
         return 1
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
     os.makedirs(out_dir, exist_ok=True)
